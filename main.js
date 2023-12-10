@@ -98,11 +98,11 @@ function loadAssets() {
   );
 }
 
-function animate() {
-  let idleDuration = 5.5;
-  let lastSwitch = 0;
-  let currentAnimation = "01_Idle";
+let idleDuration = 5;
+let lastSwitch = 0;
+let currentAnimation = "01_Idle";
 
+function animate() {
   if (mixer) mixer.update(clock.getDelta());
 
   if (idleAction && idle2Action) {
