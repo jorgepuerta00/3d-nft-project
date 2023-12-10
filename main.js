@@ -82,12 +82,12 @@ function loadAssets() {
       mixer.stopAllAction();
       const clips = gltf.animations;
 
-      const idle = THREE.AnimationClip.findByName(clips, "02_Taunt");
+      const idle = THREE.AnimationClip.findByName(clips, "01_Idle");
       idleAction = mixer.clipAction(idle);
       idleAction.play();
       idleAction.setLoop(THREE.LoopRepeat);
 
-      const idle2 = THREE.AnimationClip.findByName(clips, "03_Victory_Pose");
+      const idle2 = THREE.AnimationClip.findByName(clips, "02_Idle");
       idle2Action = mixer.clipAction(idle2);
       idle2Action.setLoop(THREE.LoopRepeat);
     },
@@ -98,21 +98,21 @@ function loadAssets() {
   );
 }
 
-let idleDuration = 5.5; // Duración de la animación idle en segundos
-let lastSwitch = 0; // Tiempo desde la última vez que se cambió la animación
-let currentAnimation = "02_Taunt"; // Animación actual
-
 function animate() {
+  let idleDuration = 5.5;
+  let lastSwitch = 0;
+  let currentAnimation = "01_Idle";
+
   if (mixer) mixer.update(clock.getDelta());
 
   if (idleAction && idle2Action) {
     if (clock.getElapsedTime() - lastSwitch > idleDuration) {
-      if (currentAnimation === "02_Taunt") {
-        currentAnimation = "03_Victory_Pose";
+      if (currentAnimation === "01_Idle") {
+        currentAnimation = "02_Idle";
         idleAction.crossFadeTo(idle2Action, 1, true);
         idle2Action.reset().play();
-      } else if (currentAnimation === "03_Victory_Pose") {
-        currentAnimation = "02_Taunt";
+      } else if (currentAnimation === "02_Idle") {
+        currentAnimation = "01_Idle";
         idle2Action.crossFadeTo(idleAction, 1, true);
         idleAction.reset().play();
       }
