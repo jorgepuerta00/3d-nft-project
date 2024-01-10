@@ -10,20 +10,22 @@ let idleAction, idle2Action;
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer();
-const camera = new THREE.PerspectiveCamera(
-  45,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+
+const fov = 45;
+const aspect = window.innerWidth / window.innerHeight;
+const near = 0.1;
+const far = 1000;
+const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
 init();
 
-const planeGeometry = new THREE.PlaneGeometry(15, 15); // Ajusta el tamaño según sea necesario
-const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeeee }); // Elige el color que prefieras
+const width = 15;
+const height = 15;
+const planeGeometry = new THREE.PlaneGeometry(width, height);
+const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = -Math.PI / 2; // Rota el plano para que esté horizontal
-plane.receiveShadow = true; // Importante para que reciba sombras
+plane.rotation.x = -Math.PI / 2;
+plane.receiveShadow = true;
 scene.add(plane);
 
 function init() {
@@ -66,11 +68,6 @@ function loadCamera() {
   orbit.update();
 }
 
-function loadGridHelper() {
-  const gridHelper = new THREE.GridHelper(10, 10);
-  scene.add(gridHelper);
-}
-
 function loadAssets() {
   const assetLoader = new GLTFLoader();
   assetLoader.load(
@@ -78,8 +75,8 @@ function loadAssets() {
     function (gltf) {
       const model = gltf.scene;
       scene.add(model);
+
       mixer = new THREE.AnimationMixer(model);
-      mixer.stopAllAction();
       const clips = gltf.animations;
 
       const idle = THREE.AnimationClip.findByName(clips, "01_Idle");
@@ -87,9 +84,20 @@ function loadAssets() {
       idleAction.play();
       idleAction.setLoop(THREE.LoopRepeat);
 
-      const idle2 = THREE.AnimationClip.findByName(clips, "02_Idle");
-      idle2Action = mixer.clipAction(idle2);
-      idle2Action.setLoop(THREE.LoopRepeat);
+      populateAnimationDropdown(clips);
+
+      document
+        .getElementById("animationSelect")
+        .addEventListener("change", function (e) {
+          playSelectedAnimation(e.target.value, clips);
+        });
+
+      mixer.addEventListener("finished", function (e) {
+        console.log(e, "finished");
+        idle2Action.crossFadeTo(idleAction, 1, true);
+        idleAction.reset().play();
+        idleAction.setLoop(THREE.LoopRepeat);
+      });
     },
     undefined,
     function (error) {
@@ -98,33 +106,39 @@ function loadAssets() {
   );
 }
 
-let idleDuration = 5;
-let lastSwitch = 0;
-let currentAnimation = "01_Idle";
-
 function animate() {
   if (mixer) mixer.update(clock.getDelta());
-
-  if (idleAction && idle2Action) {
-    if (clock.getElapsedTime() - lastSwitch > idleDuration) {
-      if (currentAnimation === "01_Idle") {
-        currentAnimation = "02_Idle";
-        idleAction.crossFadeTo(idle2Action, 1, true);
-        idle2Action.reset().play();
-      } else if (currentAnimation === "02_Idle") {
-        currentAnimation = "01_Idle";
-        idle2Action.crossFadeTo(idleAction, 1, true);
-        idleAction.reset().play();
-      }
-      lastSwitch = clock.getElapsedTime();
-    }
-  }
-  renderer.shadowMap.enabled = true;
   renderer.render(scene, camera);
 }
 
 function loadAnimationLoop() {
   renderer.setAnimationLoop(animate);
+}
+
+function populateAnimationDropdown(clips) {
+  const select = document.getElementById("animationSelect");
+  clips.forEach((clip) => {
+    const option = document.createElement("option");
+    option.value = clip.name;
+    option.innerText = clip.name;
+    select.appendChild(option);
+  });
+}
+
+function playSelectedAnimation(animationName, clips) {
+  console.log(animationName);
+  const clip = clips.find((c) => c.name === animationName);
+  idle2Action = mixer.clipAction(clip);
+  if (idle2Action) {
+    mixer.stopAllAction();
+    idleAction.crossFadeTo(idle2Action, 1, true);
+    idle2Action.reset().play();
+    idle2Action.setLoop(THREE.LoopOnce);
+    idle2Action.clampWhenFinished = true;
+  }
+
+  renderer.shadowMap.enabled = true;
+  renderer.render(scene, camera);
 }
 
 window.addEventListener("resize", function () {
